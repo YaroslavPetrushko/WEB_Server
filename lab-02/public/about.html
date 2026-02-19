@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Me - Yaroslav Petrushko's Blog</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+<!-- Шапка -->
+<header class="header">
+    <a class="image" href="index.html">
+        <img src="images/main_image.png" alt="Main image" title="Profile Image" fetchpriority="high" width="100" height="100">
+    </a>
+    <h1>Yaroslav Petrushko's Blog</h1>
+</header>
+
+<!-- Навігація -->
+<nav class="nav">
+    <a href="index1.html" class="nav-item">Home</a>
+    <a href="blog.html" class="nav-item">Blog</a>
+    <a href="login.html" class="nav-item">Login</a>
+    <a href="register.html" class="nav-item">Register</a>
+</nav>
+
+<!-- Основний контент -->
+<main class="main">
+    <article class="article">
+        <h2>About Me</h2>
+        
+        <!-- Статус завантаження -->
+        <div id="loading-status">Завантаження...</div>
+        
+        <!-- Контейнер для даних -->
+        <div id="profile-data" style="display: none;">
+            <!-- Основна інформація -->
+            <section id="personal-info">
+                <h3>Personal Information</h3>
+                <ul id="info-list"></ul>
+            </section>
+
+            <!-- Навички -->
+            <section id="skills-section">
+                <h3>Skills & Technologies</h3>
+                <ul id="skills-list"></ul>
+            </section>
+
+            <!-- Проєкти -->
+            <section id="projects-section">
+                <h3>Current Projects</h3>
+                <ul id="projects-list"></ul>
+            </section>
+
+            <!-- Контакти -->
+            <section id="contacts-section">
+                <h3>Contact Information</h3>
+                <ul id="contacts-list"></ul>
+            </section>
+        </div>
+
+        <!-- Повідомлення про помилку -->
+        <div id="error-message" style="display: none; color: #d32f2f; padding: 20px; background: #ffebee; border-radius: 5px;">
+            <strong>Помилка:</strong> Не вдалося завантажити дані. Спробуйте оновити сторінку.
+        </div>
+    </article>
+</main>
+
+<!-- Бокова панель -->
+<aside class="aside">
+    <h3>Quick Facts</h3>
+    <img src="images/banner1.jpg" 
+         alt="Aside Banner" 
+         title="Banner" 
+         loading="lazy"
+         srcset="images/banner1_400.jpg 400w, images/banner1_800.jpg 800w"
+         sizes="(max-width: 600px) 100vw, (max-width: 1024px) 40vw, 400px">
+    
+    <blockquote>
+        <q>First, solve the problem. Then, write the code.</q>
+        <p>— John Johnson</p>
+    </blockquote>
+
+    <h4>Interests:</h4>
+    <ul>
+        <li>💻 Software Development</li>
+        <li>🎮 Game Design</li>
+        <li>🎵 Music Production</li>
+        <li>📚 Continuous Learning</li>
+    </ul>
+</aside>
+
+<!-- Підвал -->
+<footer class="footer" id="footer">
+    <p>&copy; 2025 Yaroslav Petrushko's Blog</p>
+    <p>Email: <a href="mailto:yaroslavpetrushko_off@gmail.com">yaroslavpetrushko_off@gmail.com</a></p>
+    <p><a href="#footer">Contacts</a> | Last site update: 5 November 2025</p>
+</footer>
+
+<script src="fetch_script.js" defer></script>
+</body>
+</html>

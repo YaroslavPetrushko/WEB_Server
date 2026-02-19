@@ -1,0 +1,5 @@
+[2026-02-19T14:55:18.099Z] GET / 200
+[2026-02-19T14:55:18.255Z] GET /favicon.ico 200
+{"method":"GET","url":"/","statusCode":200,"timestamp":"2026-02-19T15:29:30.773Z","duration":4}
+{"method":"GET","url":"/favicon.ico","statusCode":404,"timestamp":"2026-02-19T15:29:30.919Z","duration":0}
+
