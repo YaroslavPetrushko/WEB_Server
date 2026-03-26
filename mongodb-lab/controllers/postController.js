@@ -1,3 +1,4 @@
+// controllers/postController.js
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 
@@ -20,9 +21,10 @@ exports.createPost = async (req, res) => {
             message: 'Пост успішно створено'
         });
     } catch (error) {
-        res.status(400).json({
+        res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: []
         });
     }
 };
@@ -39,8 +41,8 @@ exports.createPost = async (req, res) => {
 //   order     - напрямок: asc | desc (default: desc)
 exports.getAllPosts = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const page = req.query.page;
+        const limit = req.query.limit;
         const skip = (page - 1) * limit;
 
         // Фільтрація
@@ -103,7 +105,8 @@ exports.getAllPosts = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: []
         });
     }
 };
@@ -116,7 +119,8 @@ exports.getPostById = async (req, res) => {
         if (!post) {
             return res.status(404).json({
                 success: false,
-                message: 'Пост не знайдено'
+                message: 'Пост не знайдено',
+                errors: [{ field: "id", message: "Post with given ID does not exist" }]
             });
         }
 
@@ -135,7 +139,8 @@ exports.getPostById = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: []
         });
     }
 };
@@ -144,13 +149,6 @@ exports.getPostById = async (req, res) => {
 exports.searchPosts = async (req, res) => {
     try {
         const { q } = req.query;
-
-        if (!q||q.trim()==='') {
-            return res.status(400).json({
-                success: false,
-                message: 'Параметр пошуку "q" обов\'язковий для пошуку'
-            });
-        }
 
         const posts = await Post.find(
             { $text: { $search: q } },
@@ -165,7 +163,8 @@ exports.searchPosts = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: []
         });
     }
 };
@@ -193,7 +192,8 @@ exports.updatePost = async (req, res) => {
         if (!post) {
             return res.status(404).json({
                 success: false,
-                message: 'Пост не знайдено'
+                message: 'Пост не знайдено',
+                errors: [{ field: "id", message: "Post with given ID does not exist" }]
             });
         }
 
@@ -203,9 +203,10 @@ exports.updatePost = async (req, res) => {
             message: 'Пост успішно оновлено'
         });
     } catch (error) {
-        res.status(400).json({
+        res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: []
         });
     }
 };
@@ -222,7 +223,8 @@ exports.likePost = async (req, res) => {
         if (!post) {
             return res.status(404).json({
                 success: false,
-                message: 'Пост не знайдено'
+                message: 'Пост не знайдено',
+                errors: [{ field: "id", message: "Post with given ID does not exist" }]
             });
         }
 
@@ -234,7 +236,8 @@ exports.likePost = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: []
         });
     }
 };
@@ -248,7 +251,8 @@ exports.deletePost = async (req, res) => {
         if (!post) {
             return res.status(404).json({
                 success: false,
-                message: 'Пост не знайдено'
+                message: 'Пост не знайдено',
+                errors: [{ field: "id", message: "Post with given ID does not exist" }] 
             });
         }
 
@@ -265,7 +269,8 @@ exports.deletePost = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: []
         });
     }
 };

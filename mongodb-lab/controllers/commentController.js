@@ -1,3 +1,4 @@
+// controllers/commentController.js
 const mongoose = require('mongoose');
 const Comment = require('../models/Comment');
 const Post = require('../models/Post');
@@ -7,19 +8,13 @@ exports.createComment = async (req, res) => {
     try {
         const { postId, author, content } = req.body;
 
-        if (!mongoose.isValidObjectId(postId)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid post ID"
-            });
-        }
-        
         // Перевіряємо чи існує пост
         const postExists = await Post.findById(postId);
         if (!postExists) {
             return res.status(404).json({
                 success: false,
-                message: 'Пост не знайдено'
+                message: 'Пост не знайдено',
+                errors: [{ field: "postId", message: "Post with given ID does not exist" }]
             });
         }
 
@@ -35,9 +30,10 @@ exports.createComment = async (req, res) => {
             message: 'Коментар додано'
         });
     } catch (error) {
-        res.status(400).json({
+        res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: []
         });
     }
 };
@@ -57,7 +53,8 @@ exports.getCommentsByPost = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: []
         });
     }
 };
@@ -76,7 +73,8 @@ exports.updateComment = async (req, res) => {
         if (!comment) {
             return res.status(404).json({
                 success: false,
-                message: 'Коментар не знайдено'
+                message: 'Коментар не знайдено',
+                errors: [{ field: "id", message: "Comment with given ID does not exist" }]
             });
         }
 
@@ -86,9 +84,10 @@ exports.updateComment = async (req, res) => {
             message: 'Коментар оновлено'
         });
     } catch (error) {
-        res.status(400).json({
+        res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: []
         });
     }
 };
@@ -101,7 +100,8 @@ exports.deleteComment = async (req, res) => {
         if (!comment) {
             return res.status(404).json({
                 success: false,
-                message: 'Коментар не знайдено'
+                message: 'Коментар не знайдено',
+                errors: [{ field: "id", message: "Comment with given ID does not exist" }]
             });
         }
 
@@ -114,7 +114,8 @@ exports.deleteComment = async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Internal server error',
+            errors: [] 
         });
     }
 };
