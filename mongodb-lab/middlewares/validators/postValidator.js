@@ -33,5 +33,5 @@ exports.searchPostsRules = [
 ];
 
 exports.mongoIdParamRule = [
-    param('id').isMongoId().withMessage('invalid id')
+    param('id').optional()
 ];

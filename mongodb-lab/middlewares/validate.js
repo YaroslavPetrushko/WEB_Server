@@ -1,18 +1,19 @@
 // middlewares/validate.js
 const { validationResult } = require('express-validator');
+const ApiError = require('../errors/ApiError');
 
 module.exports = (req, res, next) => {
     const result = validationResult(req);
 
     if (!result.isEmpty()) {
-        return res.status(400).json({
-            success: false,
-            message: 'Validation failed',
-            errors: result.array().map(e => ({
-                field: e.path || e.param,
-                message: e.msg
-            }))
-        });
+        return next(
+            ApiError.ValidationError('Validation failed',
+                result.array().map(e => ({
+                    field: e.path || e.param,
+                    message: e.msg
+                }))
+            )
+        );
     }
 
     next();

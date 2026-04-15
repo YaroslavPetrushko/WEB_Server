@@ -1,33 +1,27 @@
 // controllers/postController.js
 const Post = require('../models/Post');
 const Comment = require('../models/Comment');
+const ApiError = require('../errors/ApiError');
+const asyncHandler = require('../middlewares/asyncHandler');
 
 // ==================== CREATE ====================
 // Створення нового поста
-exports.createPost = async (req, res) => {
-    try {
-        const { title, content, author, tags } = req.body;
+exports.createPost = asyncHandler(async (req, res) => {
+    const { title, content, author, tags } = req.body;
 
-        const post = await Post.create({
-            title,
-            content,
-            author,
-            tags: tags || []
-        });
+    const post = await Post.create({
+        title,
+        content,
+        author,
+        tags: tags || []
+    });
 
-        res.status(201).json({
-            success: true,
-            data: post,
-            message: 'Пост успішно створено'
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            errors: []
-        });
-    }
-};
+    res.status(201).json({
+        success: true,
+        data: post,
+        message: 'Пост успішно створено'
+    });
+});
 
 // ==================== READ ====================
 // Отримання всіх постів з пагінацією, фільтрацією та сортуванням
@@ -39,8 +33,7 @@ exports.createPost = async (req, res) => {
 //   tags      - фільтр за тегами, через кому (?tags=js,node)
 //   sortBy    - поле сортування: createdAt | likes | title (default: createdAt)
 //   order     - напрямок: asc | desc (default: desc)
-exports.getAllPosts = async (req, res) => {
-    try {
+exports.getAllPosts = asyncHandler(async (req, res) => {
         const page = req.query.page;
         const limit = req.query.limit;
         const skip = (page - 1) * limit;
@@ -102,27 +95,13 @@ exports.getAllPosts = async (req, res) => {
             currentPage: page,
             data: posts
         });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            errors: []
-        });
-    }
-};
+});
 
 // Отримання одного поста з коментарями
-exports.getPostById = async (req, res) => {
-    try {
+exports.getPostById = asyncHandler(async (req, res) => {
         const post = await Post.findById(req.params.id);
-        
-        if (!post) {
-            return res.status(404).json({
-                success: false,
-                message: 'Пост не знайдено',
-                errors: [{ field: "id", message: "Post with given ID does not exist" }]
-            });
-        }
+          
+        if (!post) throw ApiError.notFound('Пост не знайдено');
 
         // Отримуємо коментарі до цього поста
         const comments = await Comment.find({ post: post._id })
@@ -130,24 +109,13 @@ exports.getPostById = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            data: {
-                ...post.toObject(),
-                commentCount: comments.length,
-                comments
-            }
+            data: { post, comments}
         });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            errors: []
-        });
-    }
-};
+});
 
 // Пошук постів за текстом
-exports.searchPosts = async (req, res) => {
-    try {
+exports.searchPosts = asyncHandler(async (req, res) => {
+
         const { q } = req.query;
 
         const posts = await Post.find(
@@ -160,19 +128,12 @@ exports.searchPosts = async (req, res) => {
             count: posts.length,
             data: posts
         });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            errors: []
-        });
-    }
-};
+});
 
 // ==================== UPDATE ====================
 // Оновлення поста
-exports.updatePost = async (req, res) => {
-    try {
+exports.updatePost = asyncHandler(async (req, res) => {
+
         const { title, content, tags } = req.body;
         
         const post = await Post.findByIdAndUpdate(
@@ -189,72 +150,39 @@ exports.updatePost = async (req, res) => {
             }
         );
 
-        if (!post) {
-            return res.status(404).json({
-                success: false,
-                message: 'Пост не знайдено',
-                errors: [{ field: "id", message: "Post with given ID does not exist" }]
-            });
-        }
+        if (!post) throw ApiError.notFound('Пост не знайдено');
 
         res.status(200).json({
             success: true,
             data: post,
             message: 'Пост успішно оновлено'
         });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            errors: []
-        });
-    }
-};
+});
 
 // Збільшення лічильника лайків
-exports.likePost = async (req, res) => {
-    try {
-        const post = await Post.findByIdAndUpdate(
+exports.likePost = asyncHandler(async (req, res) => {
+    const post = await Post.findByIdAndUpdate(
             req.params.id,
                 { $inc: { likes: 1 } }, // Оператор $inc для збільшення
                 { new: true }
             );
 
-        if (!post) {
-            return res.status(404).json({
-                success: false,
-                message: 'Пост не знайдено',
-                errors: [{ field: "id", message: "Post with given ID does not exist" }]
-            });
-        }
+        if (!post) throw ApiError.notFound('Пост не знайдено');            
+        //else throw ApiError.internal('Помилка при додаванні лайку'); // Штучна помилка для тестування errorHandler на статус 500
 
         res.status(200).json({
             success: true,
             data: post,
             message: 'Лайк додано'
         });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            errors: []
-        });
-    }
-};
+});
 
 // ==================== DELETE ====================
 // Видалення поста та всіх його коментарів
-exports.deletePost = async (req, res) => {
-    try {
+exports.deletePost = asyncHandler(async (req, res) => {
         const post = await Post.findById(req.params.id);
 
-        if (!post) {
-            return res.status(404).json({
-                success: false,
-                message: 'Пост не знайдено',
-                errors: [{ field: "id", message: "Post with given ID does not exist" }] 
-            });
-        }
+        if (!post) throw ApiError.notFound('Пост не знайдено');
 
         // Видаляємо всі коментарі цього поста (каскадне видалення)
         const { deletedCount } = await Comment.deleteMany({ post: req.params.id });
@@ -266,12 +194,5 @@ exports.deletePost = async (req, res) => {
             success: true,
             message: `Пост та всі коментарі видалено. Також видалено коментарів: ${deletedCount}`
         });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            errors: []
-        });
-    }
-};
+});
 
