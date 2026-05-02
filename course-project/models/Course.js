@@ -32,6 +32,11 @@ const courseSchema = new mongoose.Schema({
         required: [true, 'Duration is required'],
         min: [1, 'Duration must be at least 1 hour']
     },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
     createdAt: {
         type: Date,
         default: Date.now

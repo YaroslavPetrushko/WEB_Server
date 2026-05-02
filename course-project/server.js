@@ -4,6 +4,8 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/authRoutes');
+const courseRoutes = require('./routes/courseRoutes');
+const AppError = require('./utils/AppError');
 
 const app = express();
 
@@ -12,14 +14,25 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/courses', courseRoutes);
 
 // 404 handler
 app.use((req, res, next) => {
-    res.status(404).json({
-        success: false,
-        message: `Cannot ${req.method} ${req.originalUrl}`,
-        data: null
-    });
+  next(new AppError(`${req.originalUrl} not found`, 404));
+});
+
+// Centralized error handling middleware
+app.use((err, req, res, next) => {
+
+  const statusCode = err.statusCode || 500;
+  const message = err.isOperational ? err.message : 'Internal server error';
+
+  res.status(statusCode).json({
+
+    success: false,
+    message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
 // Connect to MongoDB and start the server

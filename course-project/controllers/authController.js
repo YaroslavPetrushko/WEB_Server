@@ -2,6 +2,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const AppError = require('../utils/AppError');
+const e = require('express');
 
 // Допоміжна функція генерації токена
 const generateToken = (id, role) => {
@@ -13,50 +15,33 @@ const generateToken = (id, role) => {
 };
 
 // POST /api/auth/register  Реєстрація нового користувача
-exports.register = async (req, res) => {
+exports.register = async (req, res, next) => {
     try {
-        const { name, email, password, confirmPassword } = req.body;
+        const { name, email, password, confirmPassword, role} = req.body;
  
         // 1. Валідація — чи всі поля заповнені?
         if (!name || !email || !password || !confirmPassword) {
-            return res.status(400).json({
-                success: false,
-                message: 'All fields are required',
-                data: null
-            });
+            return next(new AppError('All fields are required', 400));
         }
  
         // 2. Чи збігаються паролі?
         // confirmPassword існує ТІЛЬКИ в req.body і ніколи не потрапляє в БД
         if (password !== confirmPassword) {
-            return res.status(400).json({
-                success: false,
-                message: 'Passwords do not match',
-                data: null
-            });
+            return next(new AppError('Passwords do not match', 400));
         }
  
         // 3. Додаткова валідація пароля
         // Перевіряємо складність: мінімум 8 символів, хоча б одна цифра і одна літера
         const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
         if (!passwordRegex.test(password)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Password must be at least 8 characters and contain at least one letter and one number',
-                data: null
-            });
-        }
+                return next(new AppError('Password must be at least 8 characters long and contain at least one letter and one number', 400));
+            }
  
         // 4. Чи існує вже користувач із таким email?
         // User.findOne() — MongoDB-запит: шукаємо ОДИН документ за умовою { email }
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(409).json({
-                // 409 Conflict — стандартний HTTP-код для "ресурс вже існує"
-                success: false,
-                message: 'User with this email already exists',
-                data: null
-            });
+            return next(new AppError('User with this email already exists', 409));
         }
  
         // 5. Хешування пароля
@@ -71,8 +56,8 @@ exports.register = async (req, res) => {
         const user = await User.create({
             name,
             email,
-            password: hashedPassword
-            // role не передаємо — модель підставить 'user' за замовчуванням
+            password: hashedPassword,
+            role: role || 'user' // якщо роль не передана, ставимо 'user' за замовчуванням
         });
  
         // 7. Відповідь клієнту
@@ -92,22 +77,18 @@ exports.register = async (req, res) => {
     } catch (err) {
         // try-catch перехоплює будь-які помилки (мережа, БД, валідація Mongoose).
         // Повертаємо 500 Internal Server Error — щось пішло не так на сервері.
-        res.status(500).json({ success: false, message: err.message, data: null });
+       next(err);
     }
 };
 
 // POST /api/auth/login - Вхід користувача
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
     // 1. Перевірка наявності полів
         if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email and password are required',
-                data: null
-            });
+            return next(new AppError('Email and password are required', 400));
         }
 
     // 2. Пошук користувача за email
@@ -121,12 +102,8 @@ exports.login = async (req, res) => {
     const isMatch = user && await bcrypt.compare(password, user.password);
  
     if (!user || !isMatch) {
-        return res.status(401).json({
-            // 401 Unauthorized — клієнт не автентифікований
-            success: false,
-            message: 'Invalid email or password',
-            data: null
-        });
+        // 401 Unauthorized — клієнт не автентифікований
+        return next(new AppError('Invalid email or password', 401));
     }
 
     // 4. Генерація JWT токена
@@ -151,7 +128,7 @@ exports.login = async (req, res) => {
     });
 
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message, data: null });
+       next(err);
     }
 };
 
@@ -159,7 +136,7 @@ exports.login = async (req, res) => {
 // GET /api/auth/me - Отримати профіль поточного користувача
 // Цей маршрут доступний лише з валідним токеном.
 // Middleware protect (викликається ДО цієї функції в маршруті)
-exports.getMe = async (req, res) => {
+exports.getMe = async (req, res, next) => {
     try {
         // req.user встановлюється middleware protect
         const user = await User.findById(req.user.id);
@@ -171,6 +148,6 @@ exports.getMe = async (req, res) => {
         });
  
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message, data: null });
+        next(err);
     }
 };
