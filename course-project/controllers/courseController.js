@@ -1,69 +1,68 @@
 // controllers/courseController.js
-const Course = require('../models/Course');
-const AppError = require('../utils/AppError');
+const catchAsync = require('../utils/catchAsync');
+const courseService = require('../services/courseService');
 
+// GET /api/courses — всі курси з пагінацією та фільтрацією (публічний)
+exports.getAllCourses = catchAsync (async(req, res) => {
+    const { page, limit, instructor } = req.query;
+ 
+    const { courses, pagination } = await courseService.getAllCourses({
+        instructor,
+        page,
+        limit
+    });
 
-// GET /api/courses — отримати всі курси (публічний)
-exports.getAllCourses = async (req, res, next) => {
-  try {
-    const courses = await Course.find().populate('createdBy', 'name email');
-    res.status(200).json({ success: true, count: courses.length, data: courses });
-  } catch (err) {
-    next(err);
-  }
-};
+    res.status(200).json({
+        success: true,
+        count: courses.length,
+        pagination,
+        data: courses
+    });
+});
 
 
 // GET /api/courses/:id — отримати один курс (публічний)
-exports.getCourse = async (req, res, next) => {
-  try {
-    const course = await Course.findById(req.params.id).populate('createdBy', 'name');
-    if (!course) return next(new AppError('Курс не знайдено', 404));
-    res.status(200).json({ success: true, data: course });
-  } catch (err) {
-   next(err);
-  }
-};
+exports.getCourse = catchAsync (async(req, res) => {
+    const course = await courseService.getCourseById(req.params.id);
+
+    res.status(200).json({
+        success: true,
+        data: course
+    });
+});
 
 
 // POST /api/courses — створити курс (тільки авторизований)
-exports.createCourse = async (req, res, next) => {
-  try {
-    const course = await Course.create({
-      ...req.body,
-      createdBy: req.user._id
+exports.createCourse = catchAsync (async(req, res) => {
+    const course = await courseService.createCourse(req.body, req.user._id);
+
+    res.status(201).json({
+        success: true,
+        message: 'Course created successfully',
+        data: course
     });
-    res.status(201).json({ success: true, data: course });
-  } catch (err) {
-    next(err);
-  }
-};
+});
 
 
 // PUT /api/courses/:id — оновити курс (тільки авторизований)
-exports.updateCourse = async (req, res, next) => {
+exports.updateCourse = catchAsync (async(req, res) => {
+    const course = await courseService.updateCourse(req.params.id, req.body, req.user);
 
-  try {
-    const course = await Course.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!course) return next(new AppError('Курс не знайдено', 404));
-    res.status(200).json({ success: true, data: course });
-  } catch (err) {
-    next(err);
-  }
-};
+    res.status(200).json({
+        success: true,
+        message: 'Course updated successfully',
+        data: course
+    });
+});
 
 
 // DELETE /api/courses/:id — видалити курс (тільки admin)
-exports.deleteCourse = async (req, res, next) => {
-  try {
-    const course = await Course.findByIdAndDelete(req.params.id);
-    if (!course) return next(new AppError('Курс не знайдено', 404));
-    res.status(200).json({ success: true, message: 'Курс видалено' });
-  } catch (err) {
-    next(err);
-  }
-};
+exports.deleteCourse = catchAsync (async(req, res) => {
+   await courseService.deleteCourse(req.params.id);
+
+    res.status(200).json({
+        success: true,
+        message: 'Course deleted successfully',
+        data: null
+    });
+});
