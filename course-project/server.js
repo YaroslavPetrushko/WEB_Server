@@ -3,17 +3,24 @@ require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/authRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 const AppError = require('./utils/AppError');
 
 const app = express();
 
-// Статичні файли
-app.use(express.static('public'));
+// CORS — має бути до всіх маршрутів
+
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5500',
+  credentials: true
+}));
 
 // Middleware
 app.use(express.json());
+app.use(cookieParser()); // читати cookies з запитів
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -46,9 +53,8 @@ mongoose
  
         const PORT = process.env.PORT || 3000;
         app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
-            console.log(`Register: POST http://localhost:${PORT}/api/auth/register`);
-            console.log(`Client: http://localhost:${PORT}`);
+            console.log(`Server: http://localhost:${PORT}`);
+            console.log(`Client: ${process.env.CLIENT_URL || 'http://localhost:5500'}`);
         });
     })
     .catch((err) => {

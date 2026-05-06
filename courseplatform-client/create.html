@@ -191,64 +191,62 @@
 </div>
 
 <script>
-  // ── Перевірка авторизації ──
-  // Якщо токен відсутній — одразу редиректимо на логін.
-  // Не показуємо помилку — просто перенаправляємо.
-  const token = localStorage.getItem('token');
-  if (!token) {
-    window.location.href = '/login.html';
+  const API_URL = 'http://localhost:3000';
+ 
+  // ── Перевірка авторизації через API ──
+  // Ми не маємо доступу до httpOnly cookie через JS,
+  // тому перевіряємо через захищений endpoint.
+  // Якщо cookie є — сервер поверне 200, якщо ні — 401.
+  async function checkAuth() {
+    const res = await fetch(`${API_URL}/api/auth/me`, {
+      credentials: 'include'
+    });
+    if (!res.ok) {
+      // Токена немає або він протермінований — перенаправляємо
+      window.location.href = 'login.html';
+    }
   }
-
+ 
   const form = document.getElementById('createForm');
-  const btn = document.getElementById('submitBtn');
-  const msg = document.getElementById('message');
-
+  const btn  = document.getElementById('submitBtn');
+  const msg  = document.getElementById('message');
+ 
   function showMessage(text, type) {
     msg.textContent = text;
     msg.className = `message ${type}`;
     msg.style.display = 'block';
   }
-
-  // Лічильник символів для опису
+ 
   document.getElementById('description').addEventListener('input', (e) => {
     document.getElementById('descCount').textContent = `${e.target.value.length} / 500`;
   });
-
+ 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     btn.disabled = true;
     btn.textContent = 'Публікуємо...';
     msg.style.display = 'none';
-
-    const body = {
-      title: document.getElementById('title').value,
-      description: document.getElementById('description').value,
-      instructor: document.getElementById('instructor').value,
-      // Number() — конвертуємо рядок у число.
-      // API очікує number, а input завжди повертає рядок.
-      price: Number(document.getElementById('price').value),
-      duration: Number(document.getElementById('duration').value)
-    };
-
-    // Захищений запит — передаємо токен у заголовку Authorization
-    // Формат: "Bearer <token>" — стандарт Bearer Authentication
-    const res = await fetch('/api/courses', {
+ 
+    const res = await fetch(`${API_URL}/api/courses`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(body)
+      // credentials: 'include' — браузер сам додасть cookie до запиту.
+      // Authorization заголовок більше не потрібен — токен у cookie.
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title:       document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        instructor:  document.getElementById('instructor').value,
+        price:       Number(document.getElementById('price').value),
+        duration:    Number(document.getElementById('duration').value)
+      })
     });
-
+ 
     const data = await res.json();
-
+ 
     if (!res.ok) {
-      // 401 — токен протермінований або невалідний → переходимо на логін
       if (res.status === 401) {
-        localStorage.removeItem('token');
-        window.location.href = '/login.html';
+        window.location.href = 'login.html';
         return;
       }
       showMessage(data.message || 'Помилка створення курсу', 'error');
@@ -256,10 +254,13 @@
       btn.textContent = 'Опублікувати курс';
       return;
     }
-
+ 
     showMessage('Курс успішно опубліковано!', 'success');
-    setTimeout(() => window.location.href = '/', 1000);
+    setTimeout(() => window.location.href = 'index.html', 1000);
   });
+ 
+  // Запускаємо перевірку одразу при відкритті сторінки
+  checkAuth();
 </script>
 </body>
 </html>

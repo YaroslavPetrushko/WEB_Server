@@ -5,13 +5,20 @@ const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 
 const protect = catchAsync(async (req, res, next) => {
-        // Отримати токен з заголовка
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return next(new AppError('No token provided. Authorization denied', 401));
+        // Спочатку перевіряємо cookie, потім — заголовок Authorization
+        let token = req.cookies.token;
+
+        if (!token) {
+            // Якщо cookie немає — перевіряємо заголовок (для Postman і API-клієнтів)
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.split(' ')[1];
+            }
         }
 
-        const token = authHeader.split(' ')[1];
+        if (!token) {
+            return next(new AppError('Access denied. No token provided', 401));
+        }
 
         // Верифікація токена
         // jwt.verify() кидає специфічні помилки з різними name:

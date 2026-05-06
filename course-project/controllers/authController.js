@@ -9,17 +9,26 @@ const generateToken = (id, role) =>
         expiresIn: process.env.JWT_EXPIRES_IN
     });
 
+const cookieOptions = {
+    httpOnly: true, // клієнтський JS не має доступу
+    secure: process.env.NODE_ENV === 'production', // тільки HTTPS у production
+    sameSite: 'lax', // захист від CSRF
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 днів у мілісекундах
+};
+
 // POST /api/auth/register - Реєстрація нового користувача
 exports.register = catchAsync (async(req, res) => {
     const user = await authService.registerUser(req.body);
     const token = generateToken(user._id, user.role);
 
-    // Повертаємо 201 Created з токеном і даними користувача
+    // Встановити httpOnly cookie замість повернення токена в тілі
+    res.cookie('token', token, cookieOptions);
+
+    // Повертаємо 201 Created з даними користувача
     res.status(201).json({
         success: true,
-        message: 'Registration successful. Here is your token:',
+        message: 'Registration successful',
         data:{
-            token,
             user: { id: user._id, name: user.name,email: user.email, role: user.role }
         }
     });
@@ -30,17 +39,29 @@ exports.login = catchAsync (async(req, res) => {
     const user = await authService.loginUser(req.body);
     const token = generateToken(user._id, user.role);
 
-    // Повартаємо 200 з токеном і даними користувача. 
+    res.cookie('token', token, cookieOptions);
+
+    // Повартаємо 200 з даними користувача. Токен у cookie
     // Клієнт повинен зберігати цей токен (наприклад, в localStorage) і відправляти його в заголовку
     // Authorization: Bearer <token> при кожному захищеному запиті.
     res.status(200).json({
         success: true,
-        message: 'Login successful. Here is your token:',
+        message: 'Login successful',
         data: {
-            token,
             user: { id: user._id, name: user.name, email: user.email, role: user.role }
         }
-     });
+    });
+});
+
+// POST /api/auth/logout  (захищений через protect)
+exports.logout = catchAsync(async (req, res) => {
+    res.cookie('token', '', { ...cookieOptions, maxAge: 0 });
+ 
+    res.status(200).json({
+        success: true,
+        message: 'Logged out successfully',
+        data: null
+    });
 });
 
 // GET /api/auth/me - Отримати профіль поточного користувача

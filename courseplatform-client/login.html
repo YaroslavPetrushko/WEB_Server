@@ -1,3 +1,10 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CourseHub — Вхід</title>
+  <style>
     :root {
       --bg: #0d0f14;
       --surface: #161920;
@@ -126,4 +133,78 @@
     }
     .footer-link a { color: var(--accent); text-decoration: none; }
     .footer-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <a class="back-link" href="/">← CourseHub</a>
 
+  <h1>З поверненням</h1>
+  <p class="subtitle">Введіть свої дані для входу</p>
+
+  <form id="loginForm">
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="your@email.com" required autocomplete="email">
+    </div>
+
+    <div class="form-group">
+      <label>Пароль</label>
+      <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+    </div>
+
+    <button type="submit" class="btn-submit" id="submitBtn">Увійти</button>
+    <div class="message" id="message"></div>
+  </form>
+
+  <p class="footer-link">Немає акаунту? <a href="/register.html">Зареєструватися</a></p>
+</div>
+
+<script>
+  const API_URL = 'http://localhost:3000';
+ 
+  const form = document.getElementById('loginForm');
+  const btn  = document.getElementById('submitBtn');
+  const msg  = document.getElementById('message');
+ 
+  function showMessage(text, type) {
+    msg.textContent = text;
+    msg.className = `message ${type}`;
+    msg.style.display = 'block';
+  }
+ 
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = 'Входимо...';
+    msg.style.display = 'none';
+ 
+    const res = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      // credentials: 'include' — дозволяє браузеру прийняти Set-Cookie від сервера.
+      // Без цього навіть якщо сервер надішле cookie, браузер його проігнорує.
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value
+      })
+    });
+ 
+    const data = await res.json();
+ 
+    if (!res.ok) {
+      showMessage(data.message || 'Помилка входу', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Увійти';
+      return;
+    }
+ 
+    // localStorage.setItem('token') — більше не потрібен!
+    // Токен встановлено сервером як httpOnly cookie автоматично.
+    showMessage('Успішний вхід! Перенаправлення...', 'success');
+    setTimeout(() => window.location.href = 'index.html', 800);
+  });
+</script>
+</body>
+</html>
