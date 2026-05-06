@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CourseHub — Новий курс</title>
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #161920;
+      --border: #252830;
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --accent: #2dd4bf;
+      --accent-dim: rgba(45, 212, 191, 0.12);
+      --danger: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 24px;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 50% 60% at 50% 0%, rgba(45,212,191,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 40px 36px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      margin-bottom: 32px;
+      transition: color 0.18s;
+    }
+    .back-link:hover { color: var(--text); }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 32px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 11px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.18s, box-shadow 0.18s;
+      resize: vertical;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,212,191,0.1);
+    }
+    input::placeholder, textarea::placeholder { color: #3d4250; }
+    textarea { min-height: 100px; }
+
+    /* Лічильник символів */
+    .char-count { font-size: 0.75rem; color: var(--muted); text-align: right; margin-top: 4px; }
+
+    .btn-submit {
+      width: 100%;
+      padding: 13px;
+      background: var(--accent);
+      color: #0d0f14;
+      border: none;
+      border-radius: 9px;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.18s, transform 0.1s;
+    }
+    .btn-submit:hover { background: #26c4b0; }
+    .btn-submit:active { transform: scale(0.98); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .message {
+      margin-top: 16px;
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      display: none;
+    }
+    .message.error { background: rgba(248,113,113,0.1); color: var(--danger); border: 1px solid rgba(248,113,113,0.2); }
+    .message.success { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(45,212,191,0.2); }
+
+    /* Бейдж авторизованого юзера */
+    .auth-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(45,212,191,0.2);
+      color: var(--accent);
+      font-size: 0.78rem;
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+    .auth-badge::before { content: '●'; font-size: 0.5rem; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <a class="back-link" href="/">← Назад до каталогу</a>
+
+  <h1>Новий курс</h1>
+  <p class="subtitle">Заповніть форму, щоб додати курс до платформи</p>
+
+  <div class="auth-badge" id="authBadge">Авторизовано</div>
+
+  <form id="createForm">
+    <div class="form-group">
+      <label>Назва курсу</label>
+      <input type="text" id="title" placeholder="Наприклад: Основи JavaScript" required minlength="3">
+    </div>
+
+    <div class="form-group">
+      <label>Опис</label>
+      <textarea id="description" placeholder="Що студент дізнається після проходження курсу?" required minlength="10" maxlength="500"></textarea>
+      <p class="char-count" id="descCount">0 / 500</p>
+    </div>
+
+    <div class="form-group">
+      <label>Викладач</label>
+      <input type="text" id="instructor" placeholder="Ім'я та прізвище викладача" required>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label>Ціна (₴)</label>
+        <!-- type="number" → Number() при зчитуванні — важливо для API -->
+        <input type="number" id="price" placeholder="0" min="0" required>
+      </div>
+      <div>
+        <label>Тривалість (год)</label>
+        <input type="number" id="duration" placeholder="10" min="1" required>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-submit" id="submitBtn">Опублікувати курс</button>
+    <div class="message" id="message"></div>
+  </form>
+</div>
+
+<script>
+  // ── Перевірка авторизації ──
+  // Якщо токен відсутній — одразу редиректимо на логін.
+  // Не показуємо помилку — просто перенаправляємо.
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = '/login.html';
+  }
+
+  const form = document.getElementById('createForm');
+  const btn = document.getElementById('submitBtn');
+  const msg = document.getElementById('message');
+
+  function showMessage(text, type) {
+    msg.textContent = text;
+    msg.className = `message ${type}`;
+    msg.style.display = 'block';
+  }
+
+  // Лічильник символів для опису
+  document.getElementById('description').addEventListener('input', (e) => {
+    document.getElementById('descCount').textContent = `${e.target.value.length} / 500`;
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    btn.disabled = true;
+    btn.textContent = 'Публікуємо...';
+    msg.style.display = 'none';
+
+    const body = {
+      title: document.getElementById('title').value,
+      description: document.getElementById('description').value,
+      instructor: document.getElementById('instructor').value,
+      // Number() — конвертуємо рядок у число.
+      // API очікує number, а input завжди повертає рядок.
+      price: Number(document.getElementById('price').value),
+      duration: Number(document.getElementById('duration').value)
+    };
+
+    // Захищений запит — передаємо токен у заголовку Authorization
+    // Формат: "Bearer <token>" — стандарт Bearer Authentication
+    const res = await fetch('/api/courses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      // 401 — токен протермінований або невалідний → переходимо на логін
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/login.html';
+        return;
+      }
+      showMessage(data.message || 'Помилка створення курсу', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Опублікувати курс';
+      return;
+    }
+
+    showMessage('Курс успішно опубліковано!', 'success');
+    setTimeout(() => window.location.href = '/', 1000);
+  });
+</script>
+</body>
+</html>

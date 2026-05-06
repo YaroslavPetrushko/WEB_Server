@@ -9,6 +9,9 @@ const AppError = require('./utils/AppError');
 
 const app = express();
 
+// Статичні файли
+app.use(express.static('public'));
+
 // Middleware
 app.use(express.json());
 
@@ -45,6 +48,7 @@ mongoose
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
             console.log(`Register: POST http://localhost:${PORT}/api/auth/register`);
+            console.log(`Client: http://localhost:${PORT}`);
         });
     })
     .catch((err) => {

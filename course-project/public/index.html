@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CourseHub — Каталог курсів</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="/">CourseHub</a>
+  <div class="nav-links">
+    <a href="/login.html" class="btn btn-ghost" id="loginLink">Увійти</a>
+    <a href="/register.html" class="btn btn-ghost" id="registerLink">Реєстрація</a>
+    <a href="/create.html" class="btn btn-primary" id="createLink" style="display:none">+ Додати курс</a>
+    <button class="btn btn-danger" id="logoutBtn">Вийти</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Знайди курс,<br>який <span>змінить</span> тебе</h1>
+  <p>Переглядай доступні курси. Реєстрація не потрібна.</p>
+</div>
+
+<div class="filters">
+  <input class="filter-input" type="text" id="instructorFilter" placeholder="🔍  Пошук за викладачем...">
+  <div class="pagination-info" id="paginationInfo"></div>
+</div>
+
+<div class="grid" id="courseGrid">
+  <div class="state-msg"><div class="spinner"></div>Завантаження курсів...</div>
+</div>
+
+<div class="pager" id="pager"></div>
+
+<script src="js/scripts.js"></script>
+</body>
+</html>
