@@ -68,9 +68,11 @@ exports.logout = catchAsync(async (req, res) => {
 // Цей маршрут доступний лише з валідним токеном.
 // Middleware protect (викликається ДО цієї функції в маршруті)
 exports.getMe = catchAsync(async (req, res) => {
+    const { password, ...userSafe } = req.user.toObject();  // не повертати пароль у жодному разі
+
     res.status(200).json({
         success: true,
         message: 'Profile retrieved successfully',
-        data: { user: req.user }
+        data: { user: userSafe }
     });
 });
