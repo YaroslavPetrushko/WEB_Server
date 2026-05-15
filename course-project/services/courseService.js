@@ -13,7 +13,8 @@ const AppError = require('../utils/AppError');
 //   GET /api/courses?page=2&limit=5           → 5 курсів, сторінка 2
 //   GET /api/courses?instructor=John          → курси з "John" в імені викладача
 //   GET /api/courses?instructor=John&page=1&limit=3
-exports.getAllCourses = async ({ instructor, page = 1, limit = 10 } = {}) => {
+//   GET /api/courses?title=JavaScript         → курси з "JavaScript" в назві
+exports.getAllCourses = async ({ instructor, title, page = 1, limit = 10 } = {}) => {
  
     // Фільтрація
     const filter = {};
@@ -23,7 +24,13 @@ exports.getAllCourses = async ({ instructor, page = 1, limit = 10 } = {}) => {
         // $options: 'i' — регістронезалежний пошук (John = john = JOHN).
         filter.instructor = { $regex: instructor, $options: 'i' };
     }
- 
+
+    // Новий фільтр: пошук по title
+    if (title) {
+        filter.title = { $regex: title, $options: 'i' };
+    }
+
+
     // Пагінація
     const pageNum = Math.max(1, parseInt(page));   // мінімум 1
     const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 10)); // Діапазон 1..50

@@ -10,11 +10,20 @@ const {
   getAllCourses, getCourse, createCourse, updateCourse, deleteCourse
 } = require('../controllers/courseController');
 
+const {
+    enroll, unenroll, getEnrollmentStatus
+} = require('../controllers/enrollmentController');
+
 
 // Публічні маршрути — токен не потрібен
 // GET /api/courses?page=1&limit=10&instructor=John
 router.get('/', getAllCourses);
 router.get('/:id', getCourse);
+
+// Запис / відпис / статус — всі захищені
+router.post('/:id/enroll',   protect, enroll);
+router.delete('/:id/enroll', protect, unenroll);
+router.get('/:id/enrollment-status', protect, getEnrollmentStatus);
 
 // Тільки авторизовані
 router.post('/', protect, validate(createCourseSchema), createCourse);

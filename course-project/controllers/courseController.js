@@ -4,12 +4,10 @@ const courseService = require('../services/courseService');
 
 // GET /api/courses — всі курси з пагінацією та фільтрацією (публічний)
 exports.getAllCourses = catchAsync (async(req, res) => {
-    const { page, limit, instructor } = req.query;
- 
+    const { page, limit, instructor, title } = req.query;
+
     const { courses, pagination } = await courseService.getAllCourses({
-        instructor,
-        page,
-        limit
+        instructor, title, page, limit
     });
 
     res.status(200).json({

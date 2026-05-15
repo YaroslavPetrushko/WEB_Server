@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CourseHub — Мій кабінет</title>
+
+  <style>
+     :root {
+      --bg: #0d0f14;
+      --surface: #161920;
+      --border: #252830;
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --accent: #2dd4bf;
+      --accent-dim: rgba(45, 212, 191, 0.12);
+      --danger: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(13,15,20,0.85);
+      backdrop-filter: blur(12px);
+      z-index: 10;
+    }
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 8px; align-items: center; }
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: #3a3f4a; }
+    .btn-primary {
+      background: var(--accent);
+      color: #0d0f14;
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: #26c4b0; }
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid rgba(248,113,113,0.25);
+    }
+    .btn-danger:hover { background: rgba(248,113,113,0.08); }
+    #logoutBtn { display: none; }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+
+    h1 {
+      margin-bottom: 12px;
+      font-size: 2rem;
+    }
+
+    .muted {
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+
+    .course-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .course-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .course-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 20px;
+    }
+
+    .course-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .course-meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 8px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid rgba(248,113,113,0.3);
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 80px 0;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">CourseHub</a>
+</nav>
+
+<div class="container">
+
+  <h1>Мій кабінет</h1>
+  <p class="muted" id="userInfo">Завантаження...</p>
+
+  <div class="course-list" id="courseList"></div>
+
+</div>
+
+<script>
+
+const API_URL = 'http://localhost:3000';
+
+async function loadProfile() {
+
+  try {
+
+    const meRes = await fetch(`${API_URL}/api/auth/me`, {
+      credentials: 'include'
+    });
+
+    if (!meRes.ok) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    const meData = await meRes.json();
+
+    document.getElementById('userInfo').textContent =
+      `${meData.data.user.name} · ${meData.data.user.email}`;
+
+    const res = await fetch(`${API_URL}/api/auth/me/courses`, {
+      credentials: 'include'
+    });
+
+    const data = await res.json();
+
+    const list = document.getElementById('courseList');
+
+    if (!data.data.length) {
+      list.innerHTML = `
+        <div class="empty">
+          Ви ще не записані на жоден курс
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = data.data.map(e => {
+
+      const c = e.course;
+
+      return `
+        <div class="course-card">
+
+          <div class="course-top">
+            <div>
+              <div class="course-title">${c.title}</div>
+
+              <div class="course-meta">
+                ${c.instructor} · ${c.duration} год
+              </div>
+            </div>
+
+            <button
+              class="btn btn-danger"
+              onclick="unenroll('${c._id}')"
+            >
+              Відписатись
+            </button>
+
+          </div>
+
+        </div>
+      `;
+
+    }).join('');
+
+  } catch (_) {
+
+    document.getElementById('courseList').innerHTML =
+      '<div class="empty">Помилка завантаження</div>';
+  }
+}
+
+async function unenroll(courseId) {
+
+  try {
+
+    const res = await fetch(`${API_URL}/api/courses/${courseId}/enroll`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+
+    if (!res.ok) {
+      alert('Не вдалося відписатись');
+      return;
+    }
+
+    loadProfile();
+
+  } catch (_) {
+    alert('Помилка сервера');
+  }
+}
+
+loadProfile();
+
+</script>
+
+</body>
+</html>

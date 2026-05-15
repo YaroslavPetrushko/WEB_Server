@@ -187,6 +187,15 @@
     }
     .card-price.free { color: #86efac; }
     .card-duration { color: var(--muted); font-size: 0.8rem; }
+    .card-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .enroll-btn {
+      width: 100%;
+    }
 
     /* ── PAGINATION ── */
     .pager {
@@ -238,6 +247,7 @@
     <a href="login.html" class="btn btn-ghost" id="loginLink">Увійти</a>
     <a href="register.html" class="btn btn-ghost" id="registerLink">Реєстрація</a>
     <a href="create.html" class="btn btn-primary" id="createLink" style="display:none">+ Додати курс</a>
+    <a href="profile.html" class="btn btn-ghost" id="profileLink" style="display:none">Мій кабінет</a>
     <button class="btn btn-danger" id="logoutBtn" style="display:none">Вийти</button>
   </div>
 </nav>
@@ -249,6 +259,7 @@
 
 <div class="filters">
   <input class="filter-input" type="text" id="instructorFilter" placeholder="🔍  Пошук за викладачем...">
+  <input class="filter-input" type="text" id="titleFilter" placeholder="🔍  Пошук за назвою...">
   <div class="pagination-info" id="paginationInfo"></div>
 </div>
 
@@ -265,6 +276,8 @@
  
   let filterTimeout = null;
   const limit = 6;
+  let currentUser = null;
+  let enrolledCourseIds = new Set();
  
   // ── Перевірка авторизації через GET /api/auth/me ──
   // Ми більше не знаємо про токен на клієнті — він у httpOnly cookie.
@@ -278,12 +291,20 @@
         // Без цього браузер не надсилає cookie до іншого origin (порту 3000).
         credentials: 'include'
       });
-      if (res.ok) {
-        document.getElementById('logoutBtn').style.display = 'inline-flex';
-        document.getElementById('createLink').style.display = 'inline-flex';
-        document.getElementById('loginLink').style.display = 'none';
-        document.getElementById('registerLink').style.display = 'none';
-      }
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      currentUser = data.data.user;
+
+      document.getElementById('logoutBtn').style.display = 'inline-flex';
+      document.getElementById('createLink').style.display = 'inline-flex';
+      document.getElementById('profileLink').style.display = 'inline-flex';
+
+      document.getElementById('loginLink').style.display = 'none';
+      document.getElementById('registerLink').style.display = 'none';
+
+      await loadEnrollmentStatuses();
     } catch (_) { /* мережева помилка — нічого не робимо */ }
   }
  
@@ -297,12 +318,76 @@
     window.location.reload();
   });
  
-  async function loadCourses(page = 1, instructor = '') {
+  async function loadEnrollmentStatuses() {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/me/courses`, {
+        credentials: 'include'
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      enrolledCourseIds = new Set(
+        data.data.map(e => e.course._id)
+      );
+
+    } catch (_) {}
+  }
+
+  async function enroll(courseId) {
+  try {
+    const res = await fetch(`${API_URL}/api/courses/${courseId}/enroll`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message);
+      return;
+    }
+
+    enrolledCourseIds.add(courseId);
+
+    loadCourses();
+
+  } catch (_) {
+    alert('Помилка запису на курс');
+  }
+}
+
+async function unenroll(courseId) {
+    try {
+      const res = await fetch(`${API_URL}/api/courses/${courseId}/enroll`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message);
+        return;
+      }
+
+      enrolledCourseIds.delete(courseId);
+
+      loadCourses();
+
+    } catch (_) {
+      alert('Помилка відписки від курсу');
+    }
+  }
+
+  async function loadCourses(page = 1, instructor = '', title = '') {
     const grid = document.getElementById('courseGrid');
     grid.innerHTML = '<div class="state-msg"><div class="spinner"></div>Завантаження...</div>';
  
     const params = new URLSearchParams({ page, limit });
     if (instructor.trim()) params.set('instructor', instructor.trim());
+    if (title.trim()) params.set('title', title.trim());
  
     // Публічний запит — credentials: 'include' все одно потрібен,
     // бо при CORS-запиті без нього сервер не прийме preflight із cookie.
@@ -328,19 +413,58 @@
       return;
     }
  
-    grid.innerHTML = courses.map((c, i) => `
-      <div class="card" style="animation-delay:${i * 0.05}s">
-        <span class="card-tag">${c.instructor}</span>
-        <h3>${c.title}</h3>
-        <p class="card-desc">${c.description}</p>
-        <div class="card-meta">
-          <span class="card-price ${c.price === 0 ? 'free' : ''}">
-            ${c.price === 0 ? 'Безкоштовно' : `${c.price} ₴`}
-          </span>
-          <span class="card-duration">⏱ ${c.duration} год</span>
+    grid.innerHTML = courses.map((c, i) => {
+
+      const isEnrolled = enrolledCourseIds.has(c._id);
+
+      return `
+        <div class="card" style="animation-delay:${i * 0.05}s">
+          <span class="card-tag">${c.instructor}</span>
+
+          <h3>${c.title}</h3>
+
+          <p class="card-desc">${c.description}</p>
+
+          <div class="card-meta">
+            <span class="card-price ${c.price === 0 ? 'free' : ''}">
+              ${c.price === 0 ? 'Безкоштовно' : `${c.price} ₴`}
+            </span>
+
+            <span class="card-duration">
+              ⏱ ${c.duration} год
+            </span>
+          </div>
+
+          ${
+            currentUser
+              ? `
+                <div class="card-actions">
+                  ${
+                    isEnrolled
+                      ? `
+                        <button
+                          class="btn btn-danger enroll-btn"
+                          onclick="unenroll('${c._id}')"
+                        >
+                          Відписатись
+                        </button>
+                      `
+                      : `
+                        <button
+                          class="btn btn-primary enroll-btn"
+                          onclick="enroll('${c._id}')"
+                        >
+                          Записатись
+                        </button>
+                      `
+                  }
+                </div>
+              `
+              : ''
+          }
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
  
     renderPager(pagination);
   }
@@ -348,21 +472,34 @@
   function renderPager({ page, pages }) {
     const pager = document.getElementById('pager');
     if (pages <= 1) { pager.innerHTML = ''; return; }
-    let html = `<button ${page <= 1 ? 'disabled' : ''} onclick="loadCourses(${page - 1}, document.getElementById('instructorFilter').value)">← Назад</button>`;
+    const instructor = document.getElementById('instructorFilter').value;
+    const title = document.getElementById('titleFilter').value;
+    let html = `<button ${page <= 1 ? 'disabled' : ''} onclick="loadCourses(${page - 1}, '${instructor}', '${title}')">← Назад</button>`;
     for (let i = 1; i <= pages; i++) {
-      html += `<button class="${i === page ? 'active' : ''}" onclick="loadCourses(${i}, document.getElementById('instructorFilter').value)">${i}</button>`;
+      html += `<button class="${i === page ? 'active' : ''}" onclick="loadCourses(${i}, '${instructor}', '${title}')">${i}</button>`;
     }
-    html += `<button ${page >= pages ? 'disabled' : ''} onclick="loadCourses(${page + 1}, document.getElementById('instructorFilter').value)">Вперед →</button>`;
+    html += `<button ${page >= pages ? 'disabled' : ''} onclick="loadCourses(${page + 1}, '${instructor}', '${title}')">Вперед →</button>`;
     pager.innerHTML = html;
   }
  
   document.getElementById('instructorFilter').addEventListener('input', (e) => {
     clearTimeout(filterTimeout);
-    filterTimeout = setTimeout(() => loadCourses(1, e.target.value), 300);
+    const title = document.getElementById('titleFilter').value;
+    filterTimeout = setTimeout(() => loadCourses(1, e.target.value, title), 300);
   });
  
-  checkAuth();
-  loadCourses();
+  document.getElementById('titleFilter').addEventListener('input', (e) => {
+    clearTimeout(filterTimeout);
+    const instructor = document.getElementById('instructorFilter').value;
+    filterTimeout = setTimeout(() => loadCourses(1, instructor, e.target.value), 300);
+  });
+ 
+  async function initPage() {
+    await checkAuth();
+    loadCourses();
+  }
+ 
+  initPage();
 </script>
 </body>
 </html>
