@@ -1,6 +1,13 @@
 // server.js
 require('dotenv').config();
 
+const REQUIRED_ENV = ['JWT_SECRET', 'MONGODB_URI', 'JWT_EXPIRES_IN'];
+const missing = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missing.length) {
+    console.error(`❌ Missing env variables: ${missing.join(', ')}`);
+    process.exit(1);
+}
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -32,6 +39,13 @@ const authLimiter = rateLimit({
     message: { success: false, message: 'Too many requests, please try again later' }
 });
 
+// Global limiter
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    message: { success: false, message: 'Too many requests' }
+});
+
 // CORS — має бути до всіх маршрутів
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5500').split(',');
 
@@ -48,6 +62,7 @@ app.use(cors({
 // Middleware
 app.use(express.json());
 app.use(cookieParser()); // читати cookies з запитів
+app.use(globalLimiter);
 
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);
