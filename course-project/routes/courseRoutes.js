@@ -4,6 +4,7 @@ const router = express.Router();
 const protect = require('../middleware/protect');
 const restrictTo = require('../middleware/restrictTo');
 const validate = require('../validators/validate');
+const reviewRouter = require('./reviewRoutes');
 const { createCourseSchema, updateCourseSchema } = require('../validators/courseValidator');
 
 const {
@@ -19,6 +20,8 @@ const {
 // GET /api/courses?page=1&limit=10&instructor=John
 router.get('/', getAllCourses);
 router.get('/:id', getCourse);
+// Вкладений маршрут — після існуючих маршрутів
+router.use('/:courseId/reviews', reviewRouter);
 
 // Запис / відпис / статус — всі захищені
 router.post('/:id/enroll',   protect, enroll);
