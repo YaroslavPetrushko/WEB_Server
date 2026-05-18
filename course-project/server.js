@@ -37,8 +37,8 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5500').split
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Дозволяємо запити без origin (Postman, curl) лише в dev
-        if (!origin && process.env.NODE_ENV === 'development') return callback(null, true);
+        // Дозволяємо запити без origin (Postman, curl, Render)
+        if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin)) return callback(null, true);
         callback(new Error('Not allowed by CORS'));
     },
