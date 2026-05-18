@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CourseHub — Каталог курсів</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #0d0f14;
@@ -529,11 +531,11 @@ async function unenroll(courseId) {
 
       return `
         <div class="card" style="animation-delay:${i * 0.05}s">
-          <span class="card-tag">${c.instructor}</span>
+          <span class="card-tag">${esc(c.instructor)}</span>
 
-          <h3>${c.title}</h3>
+          <h3>${esc(c.title)}</h3>
 
-          <p class="card-desc">${c.description}</p>
+          <p class="card-desc">${esc(c.description)}</p>
 
           <div class="card-meta">
             <span class="card-price ${c.price === 0 ? 'free' : ''}">
@@ -674,17 +676,17 @@ async function unenroll(courseId) {
             <span class="review-author">${r.user?.name ?? 'Анонім'}</span>
             <span class="stars">${renderStars(r.rating)}</span>
           </div>
-          <p class="review-comment">${r.comment}</p>
+          <p class="review-comment">${esc(r.comment)}</p>
         </div>
       `).join('')
             : '<p style="color:var(--muted);font-size:0.875rem;padding:12px 0">Відгуків ще немає. Будьте першим!</p>';
 
     document.getElementById('drawerContent').innerHTML = `
-    <span class="card-tag" style="margin-bottom:12px;display:inline-block">${course.instructor}</span>
+    <span class="card-tag" style="margin-bottom:12px;display:inline-block">${esc(course.instructor)}</span>
     <h2 style="font-family:'Syne',sans-serif;font-size:1.55rem;font-weight:800;line-height:1.2;margin-bottom:14px;letter-spacing:-0.3px">
-      ${course.title}
+      ${esc(course.title)}
     </h2>
-    <p style="color:var(--muted);font-size:0.9rem;line-height:1.65;margin-bottom:24px">${course.description}</p>
+    <p style="color:var(--muted);font-size:0.9rem;line-height:1.65;margin-bottom:24px">${esc(course.description)}</p>
 
     <div class="drawer-meta-grid">
       <div class="drawer-meta-item">
@@ -745,6 +747,14 @@ async function unenroll(courseId) {
     } else {
       btn.disabled = false;
     }
+  }
+
+  function esc(str) {
+    return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
   }
 </script>
 </body>

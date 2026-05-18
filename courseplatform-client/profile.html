@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CourseHub — Мій кабінет</title>
-
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   <style>
      :root {
       --bg: #0d0f14;
@@ -287,8 +288,8 @@
     <div class="course-card">
       <div class="course-top">
         <div>
-          <div class="course-title">${c.title}</div>
-          <div class="course-meta">${c.instructor} · ${c.duration} год</div>
+          <div class="course-title">${esc(c.title)}</div>
+          <div class="course-meta">${esc(c.instructor)} · ${c.duration} год</div>
         </div>
         <button class="btn btn-danger" onclick="unenroll('${c._id}')">Відписатись</button>
       </div>
@@ -334,7 +335,7 @@
           Видалити
         </button>
       </div>
-      <p style="color:var(--muted);font-size:0.875rem;line-height:1.55">${review.comment}</p>
+      <p style="color:var(--muted);font-size:0.875rem;line-height:1.55">${esc(review.comment)}</p>
     </div>
   `;
   }
@@ -444,6 +445,14 @@
   }
 
   loadProfile();
+
+  function esc(str) {
+    return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+  }
 </script>
 
 </body>
