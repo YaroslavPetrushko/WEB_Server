@@ -1,13 +1,14 @@
 // services/courseService.js
 const Course = require('../models/Course');
 const AppError = require('../utils/AppError');
+const Enrollment = require('../models/Enrollment');
+const Review = require('../models/Review');
 
 // Отримати всі курси з фільтрацією та пагінацією (публічний)
 // Параметри (всі необов'язкові, є дефолти):
 //   instructor — рядок для пошуку по полю instructor (часткове співпадіння)
 //   page       — номер сторінки (за замовчуванням 1)
 //   limit      — кількість записів на сторінку (за замовчуванням 10, максимум 50)
-//
 // Приклади запитів:
 //   GET /api/courses                          → всі курси, сторінка 1
 //   GET /api/courses?page=2&limit=5           → 5 курсів, сторінка 2
@@ -94,5 +95,12 @@ exports.updateCourse = async (id, data, currentUser) => {
 exports.deleteCourse = async (id) => {
     const course = await Course.findByIdAndDelete(id);
     if (!course) throw new AppError('Course not found', 404);
+
+    // Каскадне видалення залежних документів
+    await Promise.all([
+        Enrollment.deleteMany({ course: id }),
+        Review.deleteMany({ course: id })
+    ]);
+
     return course;
 };
