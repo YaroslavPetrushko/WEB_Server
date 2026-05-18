@@ -237,6 +237,107 @@
       margin: 0 auto 12px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── DRAWER ── */
+    .drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+      backdrop-filter: blur(4px);
+      animation: fadeIn 0.2s ease;
+    }
+    .drawer-backdrop.open { display: block; }
+
+    .drawer {
+      position: fixed;
+      top: 0; right: -540px;
+      width: 520px;
+      max-width: 100vw;
+      height: 100vh;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      z-index: 101;
+      overflow-y: auto;
+      transition: right 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 32px 28px 48px;
+    }
+    .drawer.open { right: 0; }
+
+    .drawer-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      width: 32px; height: 32px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      color: var(--muted);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s;
+    }
+    .drawer-close:hover { color: var(--text); border-color: #3a3f4a; }
+
+    .drawer-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .drawer-meta-item label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .drawer-meta-item span {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .drawer-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 24px 0;
+    }
+
+    /* Відгуки */
+    .review-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .review-item:last-child { border-bottom: none; }
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .review-author { font-size: 0.875rem; font-weight: 600; }
+    .stars { color: #fbbf24; letter-spacing: 2px; font-size: 0.9rem; }
+    .stars .empty { color: var(--border); }
+    .review-comment { color: var(--muted); font-size: 0.875rem; line-height: 1.55; }
+
+    /* Кнопка "Детальніше" на картці */
+    .btn-details {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+    .btn-details:hover { color: var(--accent); border-color: var(--accent); }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   </style>
 </head>
 <body>
@@ -268,6 +369,13 @@
 </div>
 
 <div class="pager" id="pager"></div>
+
+<!-- Course Detail Drawer -->
+<div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+<div class="drawer" id="courseDrawer" role="dialog" aria-modal="true">
+  <button class="drawer-close" onclick="closeDrawer()" aria-label="Закрити">✕</button>
+  <div id="drawerContent"></div>
+</div>
 
 <script>
   // Базовий URL сервера — всі fetch-запити використовують його.
@@ -441,26 +549,16 @@ async function unenroll(courseId) {
             currentUser
               ? `
                 <div class="card-actions">
+                  <button class="btn-details" onclick="openCourse('${c._id}')">Детальніше →</button>
                   ${
-                    isEnrolled
-                      ? `
-                        <button
-                          class="btn btn-danger enroll-btn"
-                          onclick="unenroll('${c._id}')"
-                        >
-                          Відписатись
-                        </button>
-                      `
-                      : `
-                        <button
-                          class="btn btn-primary enroll-btn"
-                          onclick="enroll('${c._id}')"
-                        >
-                          Записатись
-                        </button>
-                      `
-                  }
+                    currentUser
+                        ? isEnrolled
+                            ? `<button class="btn btn-danger enroll-btn" onclick="unenroll('${c._id}')">Відписатись</button>`
+                            : `<button class="btn btn-primary enroll-btn" onclick="enroll('${c._id}')">Записатись</button>`
+                        : ''
+                    }
                 </div>
+
               `
               : ''
           }
@@ -502,6 +600,152 @@ async function unenroll(courseId) {
   }
  
   initPage();
+
+  // ── Drawer: відкриття / закриття ──
+  let _drawerCourseId = null;
+
+  async function openCourse(courseId) {
+    _drawerCourseId = courseId;
+    document.getElementById('drawerBackdrop').classList.add('open');
+    document.getElementById('courseDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    document.getElementById('drawerContent').innerHTML =
+            '<div style="text-align:center;padding:60px 0">' +
+            '<div class="spinner"></div>' +
+            '<p style="color:var(--muted);margin-top:12px;font-size:0.9rem">Завантаження...</p></div>';
+
+    try {
+      const [courseRes, reviewsRes] = await Promise.all([
+        fetch(`${API_URL}/api/courses/${courseId}`, { credentials: 'include' }),
+        fetch(`${API_URL}/api/courses/${courseId}/reviews`, { credentials: 'include' })
+      ]);
+
+      const course  = (await courseRes.json()).data;
+      const reviews = (await reviewsRes.json()).data ?? [];
+      renderDrawer(course, reviews);
+    } catch {
+      document.getElementById('drawerContent').innerHTML =
+              '<p style="color:var(--danger);text-align:center;padding:40px 0">Помилка завантаження</p>';
+    }
+  }
+
+  function closeDrawer() {
+    document.getElementById('drawerBackdrop').classList.remove('open');
+    document.getElementById('courseDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+    _drawerCourseId = null;
+  }
+
+  // Закриття по Escape
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+  // ── Drawer: рендер ──
+  function renderStars(rating, max = 5) {
+    return Array.from({ length: max }, (_, i) =>
+            `<span class="${i < rating ? '' : 'empty'}">★</span>`
+    ).join('');
+  }
+
+  function renderDrawer(course, reviews) {
+    const isEnrolled = enrolledCourseIds.has(course._id);
+    const avg = reviews.length
+            ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+            : null;
+
+    const priceHtml = course.price === 0
+            ? `<span style="color:#86efac">Безкоштовно</span>`
+            : `<span style="color:var(--accent)">${course.price} ₴</span>`;
+
+    const enrollSection = currentUser ? `
+    <button
+      class="btn ${isEnrolled ? 'btn-danger' : 'btn-primary'} enroll-btn"
+      id="drawerEnrollBtn"
+      onclick="${isEnrolled ? 'drawerUnenroll' : 'drawerEnroll'}('${course._id}')"
+    >
+      ${isEnrolled ? 'Відписатись' : 'Записатись на курс'}
+    </button>
+  ` : `<a href="login.html" class="btn btn-ghost" style="display:inline-block">Увійдіть, щоб записатись</a>`;
+
+    const reviewsHtml = reviews.length
+            ? reviews.map(r => `
+        <div class="review-item">
+          <div class="review-header">
+            <span class="review-author">${r.user?.name ?? 'Анонім'}</span>
+            <span class="stars">${renderStars(r.rating)}</span>
+          </div>
+          <p class="review-comment">${r.comment}</p>
+        </div>
+      `).join('')
+            : '<p style="color:var(--muted);font-size:0.875rem;padding:12px 0">Відгуків ще немає. Будьте першим!</p>';
+
+    document.getElementById('drawerContent').innerHTML = `
+    <span class="card-tag" style="margin-bottom:12px;display:inline-block">${course.instructor}</span>
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.55rem;font-weight:800;line-height:1.2;margin-bottom:14px;letter-spacing:-0.3px">
+      ${course.title}
+    </h2>
+    <p style="color:var(--muted);font-size:0.9rem;line-height:1.65;margin-bottom:24px">${course.description}</p>
+
+    <div class="drawer-meta-grid">
+      <div class="drawer-meta-item">
+        <label>Ціна</label>
+        <span>${priceHtml}</span>
+      </div>
+      <div class="drawer-meta-item">
+        <label>Тривалість</label>
+        <span>⏱ ${course.duration} год</span>
+      </div>
+      ${avg ? `
+      <div class="drawer-meta-item">
+        <label>Рейтинг</label>
+        <span style="color:#fbbf24">${avg} ★</span>
+      </div>` : ''}
+    </div>
+
+    ${enrollSection}
+
+    <hr class="drawer-divider">
+
+    <h3 style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:14px">
+      Відгуки
+      <span style="color:var(--muted);font-weight:400;font-size:0.85rem;margin-left:6px">(${reviews.length})</span>
+    </h3>
+    <div>${reviewsHtml}</div>
+  `;
+  }
+
+  // Запис / відпис із drawer — оновлюємо і drawer, і картку в grid
+  async function drawerEnroll(courseId) {
+    const btn = document.getElementById('drawerEnrollBtn');
+    btn.disabled = true;
+    const res = await fetch(`${API_URL}/api/courses/${courseId}/enroll`, {
+      method: 'POST', credentials: 'include'
+    });
+    if (res.ok) {
+      enrolledCourseIds.add(courseId);
+      loadCourses(); // оновити grid
+      openCourse(courseId); // оновити drawer
+    } else {
+      const d = await res.json();
+      alert(d.message);
+      btn.disabled = false;
+    }
+  }
+
+  async function drawerUnenroll(courseId) {
+    const btn = document.getElementById('drawerEnrollBtn');
+    btn.disabled = true;
+    const res = await fetch(`${API_URL}/api/courses/${courseId}/enroll`, {
+      method: 'DELETE', credentials: 'include'
+    });
+    if (res.ok) {
+      enrolledCourseIds.delete(courseId);
+      loadCourses();
+      openCourse(courseId);
+    } else {
+      btn.disabled = false;
+    }
+  }
 </script>
 </body>
 </html>

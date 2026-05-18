@@ -143,6 +143,89 @@
       text-align: center;
       padding: 80px 0;
     }
+
+     /* ── REVIEW SECTION ── */
+     .review-section {
+       margin-top: 16px;
+       padding-top: 16px;
+       border-top: 1px solid var(--border);
+     }
+     .review-section-title {
+       font-size: 0.78rem;
+       font-weight: 500;
+       color: var(--muted);
+       text-transform: uppercase;
+       letter-spacing: 0.04em;
+       margin-bottom: 12px;
+     }
+     .my-review {
+       background: var(--bg);
+       border: 1px solid var(--border);
+       border-radius: 10px;
+       padding: 14px 16px;
+     }
+     .my-review-header {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       margin-bottom: 6px;
+     }
+     .stars-display { color: #fbbf24; letter-spacing: 2px; }
+     .stars-empty   { color: var(--border); }
+     .review-form-grid { display: flex; flex-direction: column; gap: 10px; }
+     .star-picker {
+       display: flex;
+       gap: 4px;
+       flex-direction: row-reverse;
+       justify-content: flex-end;
+     }
+     .star-picker input { display: none; }
+     .star-picker label {
+       font-size: 1.5rem;
+       color: var(--border);
+       cursor: pointer;
+       transition: color 0.15s;
+       text-transform: none;
+       letter-spacing: 0;
+     }
+     .star-picker input:checked ~ label,
+     .star-picker label:hover,
+     .star-picker label:hover ~ label { color: #fbbf24; }
+     .review-textarea {
+       width: 100%;
+       padding: 10px 14px;
+       background: var(--bg);
+       border: 1px solid var(--border);
+       border-radius: 8px;
+       color: var(--text);
+       font-family: 'DM Sans', sans-serif;
+       font-size: 0.9rem;
+       resize: vertical;
+       min-height: 80px;
+       outline: none;
+       transition: border-color 0.18s;
+     }
+     .review-textarea:focus { border-color: var(--accent); }
+     .review-textarea::placeholder { color: #3d4250; }
+     .btn-sm {
+       padding: 8px 16px;
+       border-radius: 8px;
+       font-size: 0.85rem;
+       font-weight: 600;
+       cursor: pointer;
+       border: none;
+       transition: all 0.18s;
+     }
+     .btn-sm-primary { background: var(--accent); color: #0d0f14; }
+     .btn-sm-primary:hover { background: #26c4b0; }
+     .btn-sm-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+     .btn-sm-danger {
+       background: transparent;
+       color: var(--danger);
+       border: 1px solid rgba(248,113,113,0.3);
+     }
+     .btn-sm-danger:hover { background: rgba(248,113,113,0.08); }
+     .review-error { font-size: 0.8rem; color: var(--danger); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -161,106 +244,206 @@
 </div>
 
 <script>
-
   const API_URL = window.location.hostname === 'localhost'
-          ? 'http://localhost:3000'                      // Якщо розробка локальна
-          : 'https://course-platform-lmyi.onrender.com'; // URL бекенду на Render
+          ? 'http://localhost:3000'
+          : 'https://course-platform-lmyi.onrender.com';
 
-async function loadProfile() {
+  let currentUserId = null;
 
-  try {
+  async function loadProfile() {
+    try {
+      const meRes = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+      if (!meRes.ok) { window.location.href = 'login.html'; return; }
 
-    const meRes = await fetch(`${API_URL}/api/auth/me`, {
-      credentials: 'include'
-    });
+      const meData = await meRes.json();
+      currentUserId = meData.data.user._id;
 
-    if (!meRes.ok) {
-      window.location.href = 'login.html';
-      return;
+      document.getElementById('userInfo').textContent =
+              `${meData.data.user.name} · ${meData.data.user.email}`;
+
+      const res  = await fetch(`${API_URL}/api/auth/me/courses`, { credentials: 'include' });
+      const data = await res.json();
+      const list = document.getElementById('courseList');
+
+      if (!data.data.length) {
+        list.innerHTML = `<div class="empty">Ви ще не записані на жоден курс</div>`;
+        return;
+      }
+
+      // Рендеримо картки з плейсхолдером для відгуку
+      list.innerHTML = data.data.map(e => renderCourseCard(e.course)).join('');
+
+      // Завантажуємо відгуки для кожного курсу паралельно
+      await Promise.all(data.data.map(e => loadReviewSection(e.course._id)));
+
+    } catch {
+      document.getElementById('courseList').innerHTML =
+              '<div class="empty">Помилка завантаження</div>';
     }
-
-    const meData = await meRes.json();
-
-    document.getElementById('userInfo').textContent =
-      `${meData.data.user.name} · ${meData.data.user.email}`;
-
-    const res = await fetch(`${API_URL}/api/auth/me/courses`, {
-      credentials: 'include'
-    });
-
-    const data = await res.json();
-
-    const list = document.getElementById('courseList');
-
-    if (!data.data.length) {
-      list.innerHTML = `
-        <div class="empty">
-          Ви ще не записані на жоден курс
-        </div>
-      `;
-      return;
-    }
-
-    list.innerHTML = data.data.map(e => {
-
-      const c = e.course;
-
-      return `
-        <div class="course-card">
-
-          <div class="course-top">
-            <div>
-              <div class="course-title">${c.title}</div>
-
-              <div class="course-meta">
-                ${c.instructor} · ${c.duration} год
-              </div>
-            </div>
-
-            <button
-              class="btn btn-danger"
-              onclick="unenroll('${c._id}')"
-            >
-              Відписатись
-            </button>
-
-          </div>
-
-        </div>
-      `;
-
-    }).join('');
-
-  } catch (_) {
-
-    document.getElementById('courseList').innerHTML =
-      '<div class="empty">Помилка завантаження</div>';
   }
-}
 
-async function unenroll(courseId) {
+  function renderCourseCard(c) {
+    return `
+    <div class="course-card">
+      <div class="course-top">
+        <div>
+          <div class="course-title">${c.title}</div>
+          <div class="course-meta">${c.instructor} · ${c.duration} год</div>
+        </div>
+        <button class="btn btn-danger" onclick="unenroll('${c._id}')">Відписатись</button>
+      </div>
 
-  try {
-
-    const res = await fetch(`${API_URL}/api/courses/${courseId}/enroll`, {
-      method: 'DELETE',
-      credentials: 'include'
-    });
-
-    if (!res.ok) {
-      alert('Не вдалося відписатись');
-      return;
-    }
-
-    loadProfile();
-
-  } catch (_) {
-    alert('Помилка сервера');
+      <div class="review-section" id="review-section-${c._id}">
+        <p style="color:var(--muted);font-size:0.8rem">Завантаження відгуку...</p>
+      </div>
+    </div>
+  `;
   }
-}
 
-loadProfile();
+  // ── Завантажити секцію відгуку для одного курсу ──
+  async function loadReviewSection(courseId) {
+    try {
+      const res  = await fetch(`${API_URL}/api/courses/${courseId}/reviews`, { credentials: 'include' });
+      const data = await res.json();
+      const myReview = (data.data ?? []).find(r => r.user?._id === currentUserId);
+      const section  = document.getElementById(`review-section-${courseId}`);
+      if (!section) return;
 
+      section.innerHTML = myReview
+              ? renderExistingReview(myReview, courseId)
+              : renderReviewForm(courseId);
+    } catch {
+      const section = document.getElementById(`review-section-${courseId}`);
+      if (section) section.innerHTML = '';
+    }
+  }
+
+  function renderStars(rating) {
+    return Array.from({ length: 5 }, (_, i) =>
+            `<span class="${i < rating ? 'stars-display' : 'stars-empty'}">★</span>`
+    ).join('');
+  }
+
+  function renderExistingReview(review, courseId) {
+    return `
+    <div class="review-section-title">Мій відгук</div>
+    <div class="my-review">
+      <div class="my-review-header">
+        <div>${renderStars(review.rating)}</div>
+        <button class="btn-sm btn-sm-danger" onclick="deleteReview('${courseId}', '${review._id}')">
+          Видалити
+        </button>
+      </div>
+      <p style="color:var(--muted);font-size:0.875rem;line-height:1.55">${review.comment}</p>
+    </div>
+  `;
+  }
+
+  function renderReviewForm(courseId) {
+    return `
+    <div class="review-section-title">Залишити відгук</div>
+    <div class="review-form-grid">
+
+      <div class="star-picker" id="stars-${courseId}">
+        ${[5,4,3,2,1].map(n => `
+          <input type="radio" name="rating-${courseId}" id="r${n}-${courseId}" value="${n}">
+          <label for="r${n}-${courseId}" title="${n} зірок">★</label>
+        `).join('')}
+      </div>
+
+      <textarea
+        class="review-textarea"
+        id="comment-${courseId}"
+        placeholder="Поділіться враженнями про курс (мінімум 10 символів)..."
+        maxlength="500"
+      ></textarea>
+
+      <div>
+        <button
+          class="btn-sm btn-sm-primary"
+          id="review-btn-${courseId}"
+          onclick="submitReview('${courseId}')"
+        >
+          Опублікувати відгук
+        </button>
+        <div class="review-error" id="review-err-${courseId}"></div>
+      </div>
+
+    </div>
+  `;
+  }
+
+  // ── Відправити відгук ──
+  async function submitReview(courseId) {
+    const ratingInput = document.querySelector(`input[name="rating-${courseId}"]:checked`);
+    const comment     = document.getElementById(`comment-${courseId}`).value.trim();
+    const errEl       = document.getElementById(`review-err-${courseId}`);
+    const btn         = document.getElementById(`review-btn-${courseId}`);
+
+    errEl.textContent = '';
+
+    if (!ratingInput) { errEl.textContent = 'Оберіть оцінку'; return; }
+    if (comment.length < 10) { errEl.textContent = 'Відгук занадто короткий (мінімум 10 символів)'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Публікуємо...';
+
+    try {
+      const res  = await fetch(`${API_URL}/api/courses/${courseId}/reviews`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: Number(ratingInput.value), comment })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errEl.textContent = data.message || 'Помилка публікації';
+        btn.disabled = false;
+        btn.textContent = 'Опублікувати відгук';
+        return;
+      }
+
+      // Перерендерити секцію з новим відгуком
+      await loadReviewSection(courseId);
+
+    } catch {
+      errEl.textContent = 'Помилка сервера';
+      btn.disabled = false;
+      btn.textContent = 'Опублікувати відгук';
+    }
+  }
+
+  // ── Видалити відгук ──
+  async function deleteReview(courseId, reviewId) {
+    if (!confirm('Видалити відгук?')) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/courses/${courseId}/reviews/${reviewId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) await loadReviewSection(courseId);
+    } catch {
+      alert('Помилка видалення');
+    }
+  }
+
+  // ── Відписатись від курсу ──
+  async function unenroll(courseId) {
+    try {
+      const res = await fetch(`${API_URL}/api/courses/${courseId}/enroll`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) { alert('Не вдалося відписатись'); return; }
+      loadProfile();
+    } catch {
+      alert('Помилка сервера');
+    }
+  }
+
+  loadProfile();
 </script>
 
 </body>
