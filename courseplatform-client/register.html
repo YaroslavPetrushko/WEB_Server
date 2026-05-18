@@ -177,7 +177,9 @@
 </div>
 
 <script>
-  const API_URL = 'http://localhost:3000';
+  const API_URL = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000'                      // Якщо розробка локальна
+          : 'https://course-platform-lmyi.onrender.com'; // URL бекенду на Render
  
   const form = document.getElementById('registerForm');
   const btn  = document.getElementById('submitBtn');

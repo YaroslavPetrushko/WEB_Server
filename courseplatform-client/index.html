@@ -272,7 +272,9 @@
 <script>
   // Базовий URL сервера — всі fetch-запити використовують його.
   // Виносимо в одну константу, щоб змінити лише тут при деплої.
-  const API_URL = 'http://localhost:3000';
+  const API_URL = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000'                      // Якщо розробка локальна
+          : 'https://course-platform-lmyi.onrender.com'; // URL бекенду на Render
  
   let filterTimeout = null;
   const limit = 6;
