@@ -10,10 +10,10 @@ const generateToken = (id, role) =>
     });
 
 const cookieOptions = {
-    httpOnly: true, // клієнтський JS не має доступу
-    secure: process.env.NODE_ENV === 'production', // тільки HTTPS у production
-    sameSite: 'lax', // захист від CSRF
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 днів у мілісекундах
+    httpOnly: true,
+    secure: true,                          // ← завжди true (Render завжди HTTPS)
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // ← 'none' для cross-origin
+    maxAge: 7 * 24 * 60 * 60 * 1000
 };
 
 // POST /api/auth/register - Реєстрація нового користувача
