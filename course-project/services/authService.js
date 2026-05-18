@@ -5,25 +5,6 @@ const AppError = require('../utils/AppError');
 
 // Реєстрація нового користувача
 exports.registerUser = async ({ name, email, password, confirmPassword }) => {
-    
-    // Валідація: чи всі обов'язкові поля присутні
-    if (!name || !email || !password || !confirmPassword) {
-        throw new AppError('All fields are required', 400);
-    }
-
-    // Валідація збігання паролів
-    if (password !== confirmPassword) {
-        throw new AppError('Passwords do not match', 400);
-    }
-
-    // Валідація складності пароля
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-    if (!passwordRegex.test(password)) {
-        throw new AppError(
-            'Password must be at least 8 characters and contain at least one letter and one number',
-            400
-        );
-    }
 
     // Перевірка унікальності email
     const existing = await User.findOne({ email });
