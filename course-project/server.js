@@ -10,6 +10,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/authRoutes');
 const courseRoutes = require('./routes/courseRoutes');
+const reviewRouter = require('./routes/reviewRoutes');
 const AppError = require('./utils/AppError');
 
 const app = express();
@@ -51,6 +52,7 @@ app.use(cookieParser()); // читати cookies з запитів
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/reviews', reviewRouter);
 app.use('/api', require('./routes/health')); // маршрут для перевірки стану сервера
 
 // 404 handler
