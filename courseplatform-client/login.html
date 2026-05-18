@@ -162,10 +162,8 @@
   <p class="footer-link">Немає акаунту? <a href="register.html">Зареєструватися</a></p>
 </div>
 
+<script src="config.js"></script>
 <script>
-  const API_URL = window.location.hostname === 'localhost'
-          ? 'http://localhost:3000'                      // Якщо розробка локальна
-          : 'https://course-platform-lmyi.onrender.com'; // URL бекенду на Render
  
   const form = document.getElementById('loginForm');
   const btn  = document.getElementById('submitBtn');

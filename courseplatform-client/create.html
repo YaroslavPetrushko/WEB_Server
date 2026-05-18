@@ -192,11 +192,8 @@
   </form>
 </div>
 
+<script src="config.js"></script>
 <script>
-  const API_URL = window.location.hostname === 'localhost'
-          ? 'http://localhost:3000'                      // Якщо розробка локальна
-          : 'https://course-platform-lmyi.onrender.com'; // URL бекенду на Render
- 
   // ── Перевірка авторизації через API ──
   // Ми не маємо доступу до httpOnly cookie через JS,
   // тому перевіряємо через захищений endpoint.
