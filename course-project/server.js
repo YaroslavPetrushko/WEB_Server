@@ -51,6 +51,7 @@ app.use(cookieParser()); // читати cookies з запитів
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api', require('./routes/health')); // маршрут для перевірки стану сервера
 
 // 404 handler
 app.use((req, res, next) => {
