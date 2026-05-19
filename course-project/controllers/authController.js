@@ -11,7 +11,7 @@ const generateToken = (id, role) =>
 
 const cookieOptions = {
     httpOnly: true,
-    secure: true,                          // ← завжди true (Render завжди HTTPS)
+    secure: process.env.NODE_ENV === 'production',           // false в test/dev
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // ← 'none' для cross-origin
     maxAge: 7 * 24 * 60 * 60 * 1000
 };
